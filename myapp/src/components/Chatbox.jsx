@@ -6,36 +6,60 @@ export default function ChatBox() {
   const [input, setInput] = useState("")
   const [loading, setLoading] = useState(false)
   const [chatId, setChatId] = useState(null)
-console.log("CHAT ID:", chatId)
 
-useEffect(() => {
-  const savedChatId = localStorage.getItem("chatId")
-  if (savedChatId) setChatId(savedChatId)
-}, [])
+  /* ----------------------------------
+     Load chatId from localStorage
+  -----------------------------------*/
+  useEffect(() => {
+    const savedChatId = localStorage.getItem("chatId")
+    if (savedChatId) setChatId(savedChatId)
+  }, [])
 
-useEffect(() => {
-  if (chatId) localStorage.setItem("chatId", chatId)
-}, [chatId])
+  /* ----------------------------------
+     Persist chatId
+  -----------------------------------*/
+  useEffect(() => {
+    if (chatId) localStorage.setItem("chatId", chatId)
+  }, [chatId])
 
-  // ✅ FETCH HISTORY WHEN chatId CHANGES
+  /* ----------------------------------
+     Fetch chat history
+  -----------------------------------*/
   useEffect(() => {
     if (!chatId) return
 
     const fetchHistory = async () => {
       try {
         const res = await fetch(
-          `http://localhost:5000/api/chat/${chatId}`
+          `http://localhost:5000/api/chat/${chatId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+            },
+          }
         )
+
+        if (!res.ok) {
+          if (res.status === 401) {
+            localStorage.clear()
+            window.location.href = "/login"
+          }
+          return
+        }
+
         const data = await res.json()
-        setMessages(data)
+        setMessages(data.messages || [])
       } catch (error) {
-        console.error("Failed to load history", error)
+        console.error("Failed to load chat history", error)
       }
     }
 
     fetchHistory()
   }, [chatId])
 
+  /* ----------------------------------
+     Send message
+  -----------------------------------*/
   const sendMessage = async () => {
     if (!input.trim()) return
 
@@ -49,7 +73,10 @@ useEffect(() => {
     try {
       const res = await fetch("http://localhost:5000/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
         body: JSON.stringify({
           messages: updatedMessages,
           chatId,
@@ -58,46 +85,51 @@ useEffect(() => {
 
       const data = await res.json()
 
-      // 🔑 set chatId ONLY once (first message)
       if (!chatId) setChatId(data.chatId)
 
-setMessages(prev => [
-  ...prev,
-  {
-    role: "assistant",
-    content: formatMessage(data.reply),
-  },
-])
-    } catch (error) {
       setMessages(prev => [
         ...prev,
         {
           role: "assistant",
-          content: "⚠️ Something went wrong",
+          content: formatMessage(data.reply),
         },
+      ])
+    } catch (error) {
+      setMessages(prev => [
+        ...prev,
+        { role: "assistant", content: "⚠️ Something went wrong" },
       ])
     } finally {
       setLoading(false)
     }
   }
 
+  /* ----------------------------------
+     Delete single message
+  -----------------------------------*/
+  const deleteMessage = async (messageId) => {
+    try {
+      await fetch(`http://localhost:5000/api/message/${messageId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+      })
 
-const deleteMessage = async (chatId) => {
-  try {
-    await fetch(`http://localhost:5000/api/chat/${chatId}`, {
-      method: "DELETE",
-    })
-
-    // remove message from UI
-    setMessages(prev =>
-      prev.filter(msg => msg._id !== chatId)
-    )
-  } catch (error) {
-    console.error("Failed to delete message", error)
+      setMessages(prev =>
+        prev.filter(msg => msg._id !== messageId)
+      )
+    } catch (error) {
+      console.error("Failed to delete message", error)
+    }
   }
-}
 
-const formatMessage = (text, wordsPerLine = 15) => {
+  /* ----------------------------------
+     Format assistant message
+  -----------------------------------*/
+const formatMessage = (text = "", wordsPerLine = 15) => {
+  if (typeof text !== "string") return ""
+
   const words = text.split(" ")
   let result = ""
 
@@ -111,37 +143,46 @@ const formatMessage = (text, wordsPerLine = 15) => {
   return result.trim()
 }
 
+  /* ----------------------------------
+     UI
+  -----------------------------------*/
   return (
-    <main className="flex-1 flex flex-col p-4">
+    <main className="flex-1 flex flex-col">
+      {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-40">
-       {messages.map(msg => (
-  <Message
-    key={msg._id}
-    _id={msg._id}
-    role={msg.role}
-    content={msg.content}
-    onDelete={deleteMessage}
-  />
-))}
-        {loading && <p className="text-gray-400">AI is typing...</p>}
+        {messages.map((msg, index) => (
+          <Message
+            key={msg._id || index}
+            _id={msg._id}
+            role={msg.role}
+            content={msg.content}
+            onDelete={deleteMessage}
+          />
+        ))}
+
+        {loading && (
+          <p className="text-gray-400 text-sm">AI is typing...</p>
+        )}
       </div>
 
-<div className="fixed bottom-8 left-0 w-full bg-white border-t p-3 flex gap-2 z-40">
-  <input
-    className="flex-1 p-3 border rounded-xl outline-none"
-    value={input}
-    onChange={e => setInput(e.target.value)}
-    onKeyDown={e => e.key === "Enter" && sendMessage()}
-    placeholder="Type a message..."
-  />
-  <button
-    onClick={sendMessage}
-    disabled={loading}
-    className="bg-indigo-600 text-white px-5 rounded-xl disabled:opacity-50"
-  >
-    Send
-  </button>
-</div>
+      {/* Input (Fixed Bottom) */}
+      <div className="fixed bottom-8 left-0 w-full bg-white border-t p-3 flex gap-2 z-40">
+        <input
+          className="flex-1 p-3 border rounded-xl outline-none"
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && sendMessage()}
+          placeholder="Type a message..."
+        />
+
+        <button
+          onClick={sendMessage}
+          disabled={loading}
+          className="bg-indigo-600 text-white px-5 rounded-xl disabled:opacity-50"
+        >
+          Send
+        </button>
+      </div>
     </main>
   )
 }

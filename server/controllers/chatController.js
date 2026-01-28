@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai"
 import Message from "../models/Messagemodel.js"
 import Chat from "../models/ChatModel.js"
+import mongoose from "mongoose"
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
 
@@ -60,7 +61,6 @@ export const sendMessage = async (req, res) => {
   }
 }
 
-
 export const getChatHistory = async (req, res) => {
   try {
     const { chatId } = req.params
@@ -75,9 +75,17 @@ export const getChatHistory = async (req, res) => {
 
 export const deleteMessage = async (req, res) => {
   try {
-    const { chatId } = req.params
+    const { messageId } = req.params
 
-    await Message.findByIdAndDelete(chatId)
+    if (!mongoose.Types.ObjectId.isValid(messageId)) {
+      return res.status(400).json({ message: "Invalid message ID" })
+    }
+
+    const deleted = await Message.findByIdAndDelete(messageId)
+
+    if (!deleted) {
+      return res.status(404).json({ message: "Message not found" })
+    }
 
     res.json({ message: "Message deleted" })
   } catch (error) {
