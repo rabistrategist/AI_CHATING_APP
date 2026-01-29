@@ -100,11 +100,14 @@ export const logout = async (req, res) => {
       return res.status(400).json({ message: "Refresh token required" })
     }
 
-    // remove refresh token from DB
-    await User.findOneAndUpdate(
-      { refreshToken },
-      { refreshToken: null }
-    )
+    const user = await User.findOne({ refreshToken })
+
+    if (!user) {
+      return res.status(204).send() // already logged out
+    }
+
+    user.refreshToken = null
+    await user.save()
 
     res.json({ message: "Logged out successfully" })
   } catch (error) {

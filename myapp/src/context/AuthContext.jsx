@@ -52,24 +52,22 @@ export const AuthProvider = ({ children }) => {
   }
 
 const logout = async () => {
-  try {
-    await fetch("http://localhost:5000/api/auth/logout", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-      },
-    })
-  } catch (error) {
-    console.warn("Logout request failed, clearing session anyway")
-  } finally {
-    // 🔑 clear ONLY auth + chat data
-    localStorage.removeItem("accessToken")
-    localStorage.removeItem("refreshToken")
-    localStorage.removeItem("user")
-    localStorage.removeItem("chatId")
+  await fetch("http://localhost:5000/api/auth/logout", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+    },
+    body: JSON.stringify({
+      refreshToken: localStorage.getItem("refreshToken"),
+    }),
+  })
 
-    setUser(null)
-  }
+   localStorage.removeItem("accessToken")
+   localStorage.removeItem("refreshToken")
+   localStorage.removeItem("user")
+   localStorage.removeItem("chatId")
+  setUser(null)
 }
 
   return (

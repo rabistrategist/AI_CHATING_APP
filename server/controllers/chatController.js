@@ -8,58 +8,59 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
 export const sendMessage = async (req, res) => {
   try {
     const { messages, chatId } = req.body
+    const userId = req.userId
 
-    if (!messages || !Array.isArray(messages)) {
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return res.status(400).json({ error: "Invalid messages" })
     }
 
-    // Create new chat if not exists
     let chat
-    if (!chatId) {
-      chat = await Chat.create({})
-    } else {
-      chat = await Chat.findById(chatId)
+    // Use existing chat ONLY if it belongs to user
+    if (chatId) {
+      chat = await Chat.findOne({ _id: chatId, user: userId })
     }
 
-    // Save last user message
+    // Otherwise create a new chat for this user
+    if (!chat) {
+      chat = await Chat.create({
+        user: userId,
+        title: messages[0].content.slice(0, 30),
+      })
+    }
+
+    // Save user message
     const lastUserMessage = messages[messages.length - 1]
+
     await Message.create({
       chatId: chat._id,
       role: "user",
       content: lastUserMessage.content,
     })
 
+    // 4️⃣ AI response
     const model = genAI.getGenerativeModel({
       model: "gemini-3-flash-preview",
     })
 
-    const prompt = messages
-      .map(m =>
-        m.role === "user"
-          ? `User: ${m.content}`
-          : `Assistant: ${m.content}`
-      )
-      .join("\n")
+    const result = await model.generateContent(
+      messages.map(m => `${m.role}: ${m.content}`).join("\n")
+    )
 
-    const result = await model.generateContent(prompt)
     const reply = result.response.text()
 
-    // Save assistant message
     await Message.create({
       chatId: chat._id,
       role: "assistant",
       content: reply,
     })
 
-    res.json({
-      reply,
-      chatId: chat._id,
-    })
+    res.json({ reply, chatId: chat._id })
   } catch (error) {
     console.error("CHAT CONTROLLER ERROR:", error)
     res.status(500).json({ error: "AI response failed" })
   }
 }
+
 
 export const getChatHistory = async (req, res) => {
   try {
@@ -67,8 +68,12 @@ export const getChatHistory = async (req, res) => {
 
     const messages = await Message.find({ chatId }).sort({ createdAt: 1 })
 
-    res.json(messages)
+    res.json({
+      chatId,
+      messages,
+    })
   } catch (error) {
+    console.error("FETCH CHAT HISTORY ERROR:", error)
     res.status(500).json({ error: "Failed to fetch history" })
   }
 }
@@ -96,9 +101,12 @@ export const deleteMessage = async (req, res) => {
 
 export const getChats = async (req, res) => {
   try {
-    const chats = await Chat.find().sort({ updatedAt: -1 })
+    const chats = await Chat.find({ user: req.userId })
+      .sort({ updatedAt: -1 })
+
     res.json(chats)
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch chats" })
   }
 }
+

@@ -7,6 +7,29 @@ export default function ChatBox() {
   const [loading, setLoading] = useState(false)
   const [chatId, setChatId] = useState(null)
 
+  useEffect(() => {
+  const fetchChats = async () => {
+    const res = await fetch("http://localhost:5000/api/chat", {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+      },
+    })
+
+    if (!res.ok) return
+
+    const chats = await res.json()
+
+    if (chats.length > 0) {
+      setChatId(chats[0]._id)       // ✅ triggers re-render
+      localStorage.setItem("chatId", chats[0]._id)
+    }
+  }
+
+  if (!chatId) {
+    fetchChats()
+  }
+}, [])
+
   /* ----------------------------------
      Load chatId from localStorage
   -----------------------------------*/
