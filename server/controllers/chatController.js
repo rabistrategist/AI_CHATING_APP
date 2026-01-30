@@ -106,7 +106,49 @@ export const getChats = async (req, res) => {
 
     res.json(chats)
   } catch (error) {
+    console.error("Get Chats Error", error)
     res.status(500).json({ error: "Failed to fetch chats" })
   }
 }
+
+export const createChat = async (req, res) => {
+  try {
+    const chat = await Chat.create({
+      user: req.userId,
+      title: "New Chat",
+    })
+
+    res.status(201).json(chat)
+  } catch (error) {
+    console.error("CREATE CHAT ERROR:", error)
+    res.status(500).json({ error: "Failed to create chat" })
+  }
+}
+
+export const deleteChat = async (req, res) => {
+  try {
+    const { chatId } = req.params
+    const userId = req.userId
+
+    // 1️⃣ Ensure chat belongs to logged-in user
+    const chat = await Chat.findOneAndDelete({
+      _id: chatId,
+      user: userId,
+    })
+
+    if (!chat) {
+      return res.status(404).json({ message: "Chat not found" })
+    }
+
+    // 2️⃣ Delete all messages of this chat
+    await Message.deleteMany({ chatId })
+
+    res.json({ message: "Chat deleted successfully" })
+  } catch (error) {
+    console.error("DELETE CHAT ERROR:", error)
+    res.status(500).json({ error: "Failed to delete chat" })
+  }
+}
+
+
 

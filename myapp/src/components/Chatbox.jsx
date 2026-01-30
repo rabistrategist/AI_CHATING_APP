@@ -189,9 +189,9 @@ const formatMessage = (text = "", wordsPerLine = 15) => {
       </div>
 
       {/* Input (Fixed Bottom) */}
-      <div className="fixed bottom-8 left-0 w-full bg-white border-t p-3 flex gap-2 z-40">
+      <div className="fixed bottom-8 bg-gray-600 border-t w-full p-3 flex gap-2 z-40">
         <input
-          className="flex-1 p-3 border rounded-xl outline-none"
+          className="flex-1 p-3 border rounded-xl outline-none bg-gray-800"
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === "Enter" && sendMessage()}
