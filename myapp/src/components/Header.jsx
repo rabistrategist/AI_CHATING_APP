@@ -14,12 +14,12 @@ function Header() {
   }
 
   return (
-<header className="bg-blue-900 text-white p-8 text-[24px] flex justify-between font-medium">
-<div> <FontAwesomeIcon className = "text-[28px] mr-2" icon={faRobot}/> AI Chating App </div>
+<header className="bg-blue-50 shadow-md text-black p-4 text-[20px] flex justify-between font-medium">
+<div> <FontAwesomeIcon className = "text-[24px] mr-2" icon={faRobot}/> AI Chating App </div>
    {user && (
         <button
           onClick={handleLogout}
-          className="bg-white text-indigo-600 px-4 py-1.5 rounded-lg font-medium hover:bg-gray-100">
+          className="bg-black text-white px-4 py-1.5 text-sm rounded-lg font-medium hover:bg-black hover:text-white">
           Logout
         </button>
       )}

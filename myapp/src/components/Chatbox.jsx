@@ -1,53 +1,17 @@
 import { useEffect, useState } from "react"
 import Message from "./Message"
 
-export default function ChatBox() {
+export default function ChatBox({ chatId }) {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState("")
   const [loading, setLoading] = useState(false)
-  const [chatId, setChatId] = useState(null)
 
+  // 🔁 Reset messages when chat changes
   useEffect(() => {
-  const fetchChats = async () => {
-    const res = await fetch("http://localhost:5000/api/chat", {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-      },
-    })
-
-    if (!res.ok) return
-
-    const chats = await res.json()
-
-    if (chats.length > 0) {
-      setChatId(chats[0]._id)       // ✅ triggers re-render
-      localStorage.setItem("chatId", chats[0]._id)
-    }
-  }
-
-  if (!chatId) {
-    fetchChats()
-  }
-}, [])
-
-  /* ----------------------------------
-     Load chatId from localStorage
-  -----------------------------------*/
-  useEffect(() => {
-    const savedChatId = localStorage.getItem("chatId")
-    if (savedChatId) setChatId(savedChatId)
-  }, [])
-
-  /* ----------------------------------
-     Persist chatId
-  -----------------------------------*/
-  useEffect(() => {
-    if (chatId) localStorage.setItem("chatId", chatId)
+    setMessages([])
   }, [chatId])
 
-  /* ----------------------------------
-     Fetch chat history
-  -----------------------------------*/
+  // 📥 Fetch chat history
   useEffect(() => {
     if (!chatId) return
 
@@ -62,29 +26,21 @@ export default function ChatBox() {
           }
         )
 
-        if (!res.ok) {
-          if (res.status === 401) {
-            localStorage.clear()
-            window.location.href = "/login"
-          }
-          return
-        }
+        if (!res.ok) return
 
         const data = await res.json()
         setMessages(data.messages || [])
-      } catch (error) {
-        console.error("Failed to load chat history", error)
+      } catch (err) {
+        console.error("Failed to load chat history", err)
       }
     }
 
     fetchHistory()
   }, [chatId])
 
-  /* ----------------------------------
-     Send message
-  -----------------------------------*/
+  // 📤 Send message
   const sendMessage = async () => {
-    if (!input.trim()) return
+    if (!input.trim() || !chatId) return
 
     const userMessage = { role: "user", content: input }
     const updatedMessages = [...messages, userMessage]
@@ -108,16 +64,11 @@ export default function ChatBox() {
 
       const data = await res.json()
 
-      if (!chatId) setChatId(data.chatId)
-
       setMessages(prev => [
         ...prev,
-        {
-          role: "assistant",
-          content: formatMessage(data.reply),
-        },
+        { role: "assistant", content: data.reply },
       ])
-    } catch (error) {
+    } catch (err) {
       setMessages(prev => [
         ...prev,
         { role: "assistant", content: "⚠️ Something went wrong" },
@@ -127,9 +78,7 @@ export default function ChatBox() {
     }
   }
 
-  /* ----------------------------------
-     Delete single message
-  -----------------------------------*/
+  // 🗑️ Delete message
   const deleteMessage = async (messageId) => {
     try {
       await fetch(`http://localhost:5000/api/message/${messageId}`, {
@@ -142,33 +91,11 @@ export default function ChatBox() {
       setMessages(prev =>
         prev.filter(msg => msg._id !== messageId)
       )
-    } catch (error) {
-      console.error("Failed to delete message", error)
+    } catch (err) {
+      console.error("Failed to delete message", err)
     }
   }
 
-  /* ----------------------------------
-     Format assistant message
-  -----------------------------------*/
-const formatMessage = (text = "", wordsPerLine = 15) => {
-  if (typeof text !== "string") return ""
-
-  const words = text.split(" ")
-  let result = ""
-
-  for (let i = 0; i < words.length; i++) {
-    result += words[i] + " "
-    if ((i + 1) % wordsPerLine === 0) {
-      result += "\n"
-    }
-  }
-
-  return result.trim()
-}
-
-  /* ----------------------------------
-     UI
-  -----------------------------------*/
   return (
     <main className="flex-1 flex flex-col">
       {/* Messages */}
@@ -188,10 +115,10 @@ const formatMessage = (text = "", wordsPerLine = 15) => {
         )}
       </div>
 
-      {/* Input (Fixed Bottom) */}
-      <div className="fixed bottom-8 bg-gray-600 border-t w-full p-3 flex gap-2 z-40">
+      {/* Input */}
+      <div className="border-t p-3 flex gap-2 mb-6">
         <input
-          className="flex-1 p-3 border rounded-xl outline-none bg-gray-800"
+          className="flex-1 p-3 border rounded-xl outline-none bg-gray-200"
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === "Enter" && sendMessage()}
@@ -201,7 +128,7 @@ const formatMessage = (text = "", wordsPerLine = 15) => {
         <button
           onClick={sendMessage}
           disabled={loading}
-          className="bg-indigo-600 text-white px-5 rounded-xl disabled:opacity-50"
+          className="bg-indigo-600 text-white px-5 rounded-xl"
         >
           Send
         </button>

@@ -33,7 +33,7 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white via-purple-200 to-pink-100 px-4">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8">
 
         {/* Header */}
@@ -106,7 +106,7 @@ export default function Register() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 transition disabled:opacity-50"
+            className="w-full bg-black text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 transition disabled:opacity-50"
           >
             {loading ? "Creating account..." : "Register"}
           </button>
@@ -117,7 +117,7 @@ export default function Register() {
           Already have an account?{" "}
           <span
             onClick={() => navigate("/login")}
-            className="text-indigo-600 font-medium cursor-pointer hover:underline"
+            className="text-indigo-700 font-medium cursor-pointer hover:underline"
           >
             Login
           </span>
