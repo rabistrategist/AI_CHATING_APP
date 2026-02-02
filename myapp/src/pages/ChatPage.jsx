@@ -75,11 +75,3 @@ function ChatPage() {
 }
 
 export default ChatPage
-
-/*
-PORT=5000
-CORS=*
-MONGODB_URI=mongodb+srv://mrabi_db_user:HfmB9RkSh0L37bTe@cluster0.yrji7hg.mongodb.net/?appName=Cluster0
-GEMINI_API_KEY=AIzaSyDvPdTKfauBpzu8C-H7HwKzelBrbXRnyiM
-JWT_SECRET=chatingapp
-*/

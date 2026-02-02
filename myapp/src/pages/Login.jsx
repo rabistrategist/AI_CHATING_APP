@@ -1,9 +1,10 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
+import { GoogleLogin } from "@react-oauth/google"
 
 export default function Login() {
-  const { login } = useAuth()
+  const { login, googleLogin } = useAuth()
   const navigate = useNavigate()
 
   const [email, setEmail] = useState("")
@@ -85,6 +86,29 @@ export default function Login() {
             {loading ? "Signing in..." : "Login"}
           </button>
         </form>
+
+      {/* Divider */}
+      <div className="flex items-center my-6">
+       <div className="flex-1 h-px bg-gray-300" />
+       <span className="px-3 text-sm text-gray-400">OR</span>
+       <div className="flex-1 h-px bg-gray-300" />
+      </div>
+
+      {/* Google Login */}
+      <div className="flex justify-center">
+      <GoogleLogin
+      onSuccess={async (credentialResponse) => {
+      try {
+        await googleLogin(credentialResponse.credential)
+        navigate("/chatpage")
+      } catch (err) {
+        setError("Google login failed")
+      }
+    }}
+     onError={() => setError("Google login failed")}
+    />
+
+      </div>
 
         {/* Footer */}
         <p className="text-center text-sm text-gray-500 mt-6">

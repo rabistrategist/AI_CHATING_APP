@@ -5,6 +5,7 @@ import mongoose from "mongoose"
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
 
+/*
 export const sendMessage = async (req, res) => {
   try {
     const { messages, chatId } = req.body
@@ -60,6 +61,77 @@ export const sendMessage = async (req, res) => {
     res.status(500).json({ error: "AI response failed" })
   }
 }
+*/
+
+
+
+export const sendMessage = async (req, res) => {
+  try {
+    const { messages, chatId } = req.body
+    const userId = req.userId
+
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+      return res.status(400).json({ error: "Invalid messages" })
+    }
+
+    let chat
+    // Use existing chat ONLY if it belongs to user
+    if (chatId) {
+      chat = await Chat.findOne({ _id: chatId, user: userId })
+    }
+
+    // Otherwise create a new chat for this user
+    if (!chat) {
+      chat = await Chat.create({
+        user: userId,
+        title: "New Chat",
+      })
+    }
+
+    // Save user message
+    const lastUserMessage = messages[messages.length - 1]
+
+    await Message.create({
+      chatId: chat._id,
+      role: "user",
+      content: lastUserMessage.content,
+    })
+
+  // ✅ Rename chat ONLY on first message
+   if (chat.title === "New Chat") {
+    chat.title =
+    lastUserMessage.content.length > 30
+      ? lastUserMessage.content.slice(0, 30) + "..."
+      : lastUserMessage.content
+
+    await chat.save()
+    }
+
+
+    // 4️⃣ AI response
+    const model = genAI.getGenerativeModel({
+      model: "gemini-3-flash-preview",
+    })
+
+    const result = await model.generateContent(
+      messages.map(m => `${m.role}: ${m.content}`).join("\n")
+    )
+
+    const reply = result.response.text()
+
+    await Message.create({
+      chatId: chat._id,
+      role: "assistant",
+      content: reply,
+    })
+
+    res.json({ reply, chatId: chat._id })
+  } catch (error) {
+    console.error("CHAT CONTROLLER ERROR:", error)
+    res.status(500).json({ error: "AI response failed" })
+  }
+}
+
 
 
 export const getChatHistory = async (req, res) => {

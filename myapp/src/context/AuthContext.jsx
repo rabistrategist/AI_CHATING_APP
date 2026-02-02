@@ -70,8 +70,28 @@ const logout = async () => {
   setUser(null)
 }
 
+
+const googleLogin = async (googleToken) => {
+  const res = await fetch("http://localhost:5000/api/auth/google", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token: googleToken }),
+  })
+
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.message || "Google login failed")
+
+  localStorage.setItem("accessToken", data.accessToken)
+  localStorage.setItem("refreshToken", data.refreshToken)
+  localStorage.setItem("user", JSON.stringify(data.user))
+
+  setUser(data.user)
+}
+
+
   return (
-    <AuthContext.Provider value={{ user, login, register, logout }}>
+    <AuthContext.Provider
+      value={{ user, login, register, googleLogin, logout }}>
       {children}
     </AuthContext.Provider>
   )

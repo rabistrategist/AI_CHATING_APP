@@ -62,7 +62,7 @@ function ChatSidebar({ chats, setChats, chatId, setChatId }) {
             key={chat._id}
             onClick={() => setChatId(chat._id)}
             className={`flex justify-between items-center px-3 py-2 cursor-pointer
-              ${chatId === chat._id ? "bg-gray-200 text-black shadow-md" : "hover:bg-gray-300"}
+              ${chatId === chat._id ? "m-4 bg-gray-200 text-black shadow-md" : "hover:bg-gray-300 m-4 text-black"}
             `}
           > 
             <span className="truncate"><FontAwesomeIcon icon={faPenToSquare} /> {chat.title}</span>
